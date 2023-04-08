@@ -14,7 +14,7 @@ Connect to SQL Server, create a test table dbo.OrderDetail, and run some DML sql
 
 ### Test cases
 They can be found in here:
-[LivingDoc.html](Tests%2Fbin%2FDebug%2Fnet6.0%2FLivingDoc.html)
+[LivingDoc.html](LivingDoc.html)
 
 #### To regenerate the living documentation
 ```
