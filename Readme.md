@@ -16,6 +16,8 @@ Connect to SQL Server, create a test table dbo.OrderDetail, and run some DML sql
 They can be found in here:
 [LivingDoc.html](LivingDoc.html)
 
+![img_1.png](img_1.png)
+
 #### To regenerate the living documentation
 ```
 livingdoc test-assembly Tests.dll -t TestExecution.json
