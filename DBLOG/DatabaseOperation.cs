@@ -5,10 +5,6 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace DBLOG
 {
@@ -74,7 +70,7 @@ namespace DBLOG
                     scn.Open();
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw new Exception(ex.Message);
             }
@@ -138,7 +134,7 @@ namespace DBLOG
                 ls = new List<T>();
 
                 targettype = "";
-                if (typeof(T).IsValueType 
+                if (typeof(T).IsValueType
                     || typeof(T).Name.ToLower().Contains("string")
                     || typeof(T).Name.ToLower() == "byte[]"
                    )
@@ -390,7 +386,7 @@ namespace DBLOG
                 scm.Parameters.AddRange(pParameters.ToArray());
                 scm.ExecuteNonQuery();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
 
             }
@@ -451,7 +447,7 @@ namespace DBLOG
 
             return dt;
         }
-    
+
 
     }
 

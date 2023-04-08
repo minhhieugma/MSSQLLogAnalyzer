@@ -60,15 +60,6 @@
     <Folder Include="Properties" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DBLOG\DBLOG.csproj">
-      <Name>DBLOG</Name>
-      <Project>{86db5a5d-c762-44d6-82cf-e6605fe63587}</Project>
-      <Private>True</Private>
-      <IsModelAware>True</IsModelAware>
-      <GenerateSqlClrDdl>True</GenerateSqlClrDdl>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />

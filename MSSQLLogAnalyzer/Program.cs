@@ -1,22 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using MSSQLLogAnalyzer;
 using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
-namespace MSSQLLogAnalyzer
+namespace WinFormsApp1
 {
-    static class Program
+    internal static class Program
     {
         /// <summary>
-        /// 应用程序的主入口点。
+        ///  The main entry point for the application.
         /// </summary>
         [STAThread]
         static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
+            // To customize application configuration such as set high DPI settings or default font,
+            // see https://aka.ms/applicationconfiguration.
+            ApplicationConfiguration.Initialize();
             Application.ThreadException += new System.Threading.ThreadExceptionEventHandler(FThreadException);
             Application.Run(new Form1());
         }
@@ -34,6 +31,5 @@ namespace MSSQLLogAnalyzer
 
             MessageBox.Show(sb.ToString(), "Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-
     }
 }

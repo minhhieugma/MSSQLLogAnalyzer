@@ -1,31 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json;
 using System.Xml;
-using Newtonsoft.Json;
 
 namespace DBLOG
 {
     // DML log Analyzer for DML
     public partial class DBLOG_DML
     {
-        private DatabaseOperation DB; // 数据库操作
-        private string stsql,         // 动态SQL
-                       DatabaseName,  // 数据库名
-                       TableName,     // 表名
-                       SchemaName,    // 架构名
-                       LogFile;
-        private TableColumn[] TableColumns;  // 表结构定义
-        private TableInformation TableInfos;   // 表信息
+        private readonly DatabaseOperation DB; // 数据库操作
+        private string stsql;
+        private readonly string DatabaseName;
+        private readonly string TableName;
+        private readonly string SchemaName;
+        private readonly string LogFile;
+        private readonly TableColumn[] TableColumns;  // 表结构定义
+        private readonly TableInformation TableInfos;   // 表信息
         private Dictionary<string, FPageInfo> lobpagedata; // key:fileid+pageid value:FPageInfo
-        private List<string> RowCompressionAffectsStorage;
+        private readonly List<string> RowCompressionAffectsStorage;
         public static List<(string pageid, string lsn)> PrevPages; // fileid+pageid 
         public List<FLOG> DTLogs;     // 原始日志信息
 
@@ -83,7 +79,7 @@ namespace DBLOG
 
             logs = new List<DatabaseLog>();
             ColumnList = string.Join(",", TableColumns
-                                          .Where(p => p.PhysicalStorageType != SqlDbType.Timestamp 
+                                          .Where(p => p.PhysicalStorageType != SqlDbType.Timestamp
                                                       && p.IsComputed == false
                                                       && p.IsHidden == false)
                                           .Select(p => $"[{p.ColumnName}]"));
@@ -162,18 +158,12 @@ namespace DBLOG
                                 stemp = log.RowLog_Contents_2.ToText();
                                 if (stemp.Length >= 2)
                                 {
-                                    switch (stemp.Substring(0, 2))
+                                    PrimaryKeyValue = stemp.Substring(0, 2) switch
                                     {
-                                        case "16":
-                                            PrimaryKeyValue = stemp.Substring(2, stemp.Length - 4 * 2);
-                                            break;
-                                        case "36":
-                                            PrimaryKeyValue = stemp.Substring(16);
-                                            break;
-                                        default:
-                                            PrimaryKeyValue = "";
-                                            break;
-                                    }
+                                        "16" => stemp.Substring(2, stemp.Length - 4 * 2),
+                                        "36" => stemp.Substring(16),
+                                        _ => "",
+                                    };
                                 }
                                 else
                                 {
@@ -221,7 +211,7 @@ namespace DBLOG
                         WhereList1 = string.Empty;
                         WhereList0 = string.Empty;
                         MR0 = new byte[1];
-                        
+
                         switch (log.Operation)
                         {
                             // Insert / Delete
@@ -242,7 +232,7 @@ namespace DBLOG
                                                 MR0 = new byte[log.RowLog_Contents_0.Length];
                                                 MR0 = log.RowLog_Contents_0;
                                             }
-                                            catch (Exception ex)
+                                            catch (Exception)
                                             {
                                                 DRTemp = DTMRlist.Select("PAGEID='" + log.Page_ID + "' and SlotID='" + log.Slot_ID.ToString() + "' and AllocUnitId='" + log.AllocUnitId.ToString() + "' ");
                                                 if (DRTemp.Length > 0)
@@ -326,7 +316,7 @@ namespace DBLOG
                                         }
 
                                         TableColumns[j].IsNull = false;
-                                        TableColumns[j].Value = JsonConvert.SerializeObject(tj);
+                                        TableColumns[j].Value = JsonSerializer.Serialize(tj);
                                     }
 
                                     Value = ColumnValue2SQLValue(TableColumns[j]);
@@ -351,9 +341,9 @@ namespace DBLOG
 
                                     if (TableColumns.Any(p => p.IsIdentity) == true)
                                     {
-                                        REDOSQL = $"set identity_insert [{SchemaName}].[{TableName}] on; " + "\r\n"
-                                                  + REDOSQL + "\r\n"
-                                                  + $"set identity_insert [{SchemaName}].[{TableName}] off; " + "\r\n";
+                                        REDOSQL = $"set identity_insert [{SchemaName}].[{TableName}] on; " + AddBreakLine()
+                                                  + REDOSQL + AddBreakLine()
+                                                  + $"set identity_insert [{SchemaName}].[{TableName}] off; " + AddBreakLine();
                                     }
                                 }
                                 // 产生redo sql和undo sql -- Delete
@@ -364,9 +354,9 @@ namespace DBLOG
 
                                     if (TableColumns.Any(p => p.IsIdentity) == true)
                                     {
-                                        UNDOSQL = $"set identity_insert [{SchemaName}].[{TableName}] on; " + "\r\n"
-                                                  + UNDOSQL + "\r\n"
-                                                  + $"set identity_insert [{SchemaName}].[{TableName}] off; " + "\r\n";
+                                        UNDOSQL = $"set identity_insert [{SchemaName}].[{TableName}] on; " + AddBreakLine()
+                                                  + UNDOSQL + AddBreakLine()
+                                                  + $"set identity_insert [{SchemaName}].[{TableName}] off; " + AddBreakLine();
                                     }
                                 }
 
@@ -428,8 +418,8 @@ namespace DBLOG
                             tmplog.EndTime = EndTime;
                             tmplog.ObjectName = $"[{SchemaName}].[{TableName}]";
                             tmplog.Operation = log.Operation;
-                            tmplog.RedoSQL = REDOSQL;
-                            tmplog.UndoSQL = UNDOSQL;
+                            tmplog.RedoSQL = REDOSQL.Trim();
+                            tmplog.UndoSQL = UNDOSQL.Trim();
                             tmplog.Message = stemp;
                             logs.Add(tmplog);
                         }
@@ -505,6 +495,12 @@ namespace DBLOG
             return logs;
         }
 
+        private static string AddBreakLine()
+        {
+            return string.Empty;
+            //return "\r\n";
+        }
+
         private bool IsLCXTEXT(FLOG log)
         {
             return
@@ -520,7 +516,7 @@ namespace DBLOG
             byte[] mr1;
             string fileid_dec, pageid_dec, checkvalue1, checkvalue2;
             bool isfound;
-            
+
             fileid_dec = Convert.ToInt16(pLog.Page_ID.Split(':')[0], 16).ToString();
             pageid_dec = Convert.ToInt32(pLog.Page_ID.Split(':')[1], 16).ToString();
             stsql = $"DBCC PAGE([{DatabaseName}],{fileid_dec},{pageid_dec},3) with tableresults,no_infomsgs; ";
@@ -550,7 +546,7 @@ namespace DBLOG
                     checkvalue2 = "";
                     break;
             }
-            
+
             isfound = false;
 
             stsql = "truncate table #ModifiedRawData; ";
@@ -636,10 +632,10 @@ namespace DBLOG
             (string pageid, string lsn) pp;
             List<FLOG> prevtran;
 
-            pp = (PrevPages == null ? (null,null) : PrevPages.FirstOrDefault(p => p.pageid == pPageID));
+            pp = (PrevPages == null ? (null, null) : PrevPages.FirstOrDefault(p => p.pageid == pPageID));
             if (pp.pageid != null)
             {
-                tsql = "set transaction isolation level read uncommitted; " 
+                tsql = "set transaction isolation level read uncommitted; "
                        + "select * "
                        + "  from sys.fn_dblog(null,null) t "
                        + $" where [Current LSN]<'{pp.lsn}' "
@@ -738,12 +734,11 @@ namespace DBLOG
         }
 
         public void AnalyzeUpdate(FLOG curlog, byte[] mr1,
-                                  ref string ValueList1, ref string ValueList0, 
-                                  ref string WhereList1, ref string WhereList0, 
+                                  ref string ValueList1, ref string ValueList0,
+                                  ref string WhereList1, ref string WhereList0,
                                   ref byte[] mr0)
         {
             int i;
-            string mr0_str;
             TableColumn[] columns0, columns1;
             CompressionType compressiontype;
 
@@ -762,20 +757,13 @@ namespace DBLOG
                     TranslateData_Compression(mr1, columns1);
                     break;
             }
-            
-            switch (curlog.Operation)
-            {
-                case "LOP_MODIFY_ROW":
-                    mr0_str = RESTORE_LOP_MODIFY_ROW(curlog, mr1);
-                    break;
-                case "LOP_MODIFY_COLUMNS":
-                    mr0_str = RESTORE_LOP_MODIFY_COLUMNS(curlog, mr1, columns0, columns1, compressiontype);
-                    break;
-                default:
-                    mr0_str = mr1.ToText();
-                    break;
-            }
 
+            string mr0_str = (object)curlog.Operation switch
+            {
+                "LOP_MODIFY_ROW" => RESTORE_LOP_MODIFY_ROW(curlog, mr1),
+                "LOP_MODIFY_COLUMNS" => RESTORE_LOP_MODIFY_COLUMNS(curlog, mr1, columns0, columns1, compressiontype),
+                _ => mr1.ToText(),
+            };
             mr0 = mr0_str.ToByteArray();
 
             switch (compressiontype)
@@ -818,11 +806,11 @@ namespace DBLOG
                     || TableInfos.PrimaryKeyColumns.Contains(TableColumns[i].ColumnName))
                 {
                     WhereList0 = WhereList0 + (WhereList0.Length > 0 ? " and " : "")
-                                  + ColumnName2SQLName(TableColumns[i]) 
+                                  + ColumnName2SQLName(TableColumns[i])
                                   + (columns1[i].IsNull ? " is " : "=")
                                   + ColumnValue2SQLValue(columns1[i]);
                     WhereList1 = WhereList1 + (WhereList1.Length > 0 ? " and " : "")
-                                  + ColumnName2SQLName(TableColumns[i]) 
+                                  + ColumnName2SQLName(TableColumns[i])
                                   + (columns0[i].IsNull ? " is " : "=")
                                   + ColumnValue2SQLValue(columns0[i]);
                 }
@@ -857,7 +845,7 @@ namespace DBLOG
                     mr0_str = mr1.ToText();
                 }
             }
-            catch(Exception ex)
+            catch (Exception)
             {
                 mr0_str = mr1.ToText();
             }
@@ -938,7 +926,7 @@ namespace DBLOG
                         break;
                 }
             }
-            catch(Exception ex)
+            catch (Exception)
             {
                 bfinish = false;
             }
@@ -1032,7 +1020,7 @@ namespace DBLOG
                         bfinish = true;
                         break;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         continue;
                     }
@@ -1059,10 +1047,10 @@ namespace DBLOG
                    Value,
                    VariantCollation;
             byte[] m_bBitColumnData;
-            short i, j, 
-                  BitColumnCount, 
-                  UniqueidentifierColumnCount, 
-                  BitColumnDataLength, 
+            short i, j,
+                  BitColumnCount,
+                  UniqueidentifierColumnCount,
+                  BitColumnDataLength,
                   BitColumnDataIndex,
                   AllColumnCount,              // 字段总数_实际字段总数
                   AllColumnCountLog,           // 字段总数_日志里的字段总数
@@ -1071,7 +1059,7 @@ namespace DBLOG
                   VarColumnCount,              // 变长字段数量
                   VarColumnStartIndex,         // 变长列字段值开始位置
                   VarColumnEndIndex;           // 变长列字段值结束位置
-            short? VariantLength, 
+            short? VariantLength,
                    VariantScale;
             TableColumn[] columns2,  // 补齐ColumnID,并移除所有计算列的字段列表.
                           columns3;  // 实际用于解析的字段列表.
@@ -1088,7 +1076,7 @@ namespace DBLOG
 
             // 预处理Bit字段
             BitColumnCount = Convert.ToInt16(columns.Count(p => p.PhysicalStorageType == SqlDbType.Bit));
-            BitColumnDataLength = (short)Math.Ceiling((double)BitColumnCount / (double)8.0); // 根据Bit字段数 计算Bit字段值列表长度(字节数)
+            BitColumnDataLength = (short)Math.Ceiling(BitColumnCount / (double)8.0); // 根据Bit字段数 计算Bit字段值列表长度(字节数)
             m_bBitColumnData = new byte[BitColumnDataLength];
             BitColumnDataIndex = -1;
             BitValueStartIndex = 0;
@@ -1225,7 +1213,7 @@ namespace DBLOG
             }
 
             // 根据字段总数 计算null值列表长度(字节数)
-            NullStatusLength = (short)Math.Ceiling((double)AllColumnCountLog / (double)8.0);
+            NullStatusLength = (short)Math.Ceiling(AllColumnCountLog / (double)8.0);
             NullStatus = "";
             for (i = 0; i <= NullStatusLength - 1; i++)
             {
@@ -1405,7 +1393,7 @@ namespace DBLOG
                 {
                     VarColumnCount = (short)columns3.Count(p => p.IsVarLenDataType == true);
                 }
-                
+
                 index = index + 2;
                 VarlenColumns = new List<FVarColumnInfo>();
                 if (index < rowdata.Length - 1)
@@ -1413,7 +1401,7 @@ namespace DBLOG
                     tempstr = rowdata_text.Substring(index * 2, 2 * 2);
                     VarColumnStartIndex = (short)(index + VarColumnCount * 2);
                     VarColumnEndIndex = BitConverter.ToInt16(rowdata, index);
-                    
+
                     for (i = 1, index2 = index; i <= VarColumnCount; i++)
                     {
                         tvc = new FVarColumnInfo();
@@ -2257,7 +2245,7 @@ namespace DBLOG
 
                 bNeedSeparatorchar = (NoSeparatorchar.Any(p => p == datatype.ToString().ToLower()) ? false : true);
                 bIsUnicodeType = (UnicodeType.Any(p => p == datatype.ToString().ToLower()) ? true : false);
-                
+
                 sValue = (bIsUnicodeType ? "N" : "") + (bNeedSeparatorchar ? "'" : "") + pcol.Value.ToString().Replace("'", "''") + (bNeedSeparatorchar ? "'" : "");
 
                 if (pcol.PhysicalStorageType == SqlDbType.Variant)
@@ -2342,21 +2330,12 @@ namespace DBLOG
 
         private string ColumnName2SQLName(TableColumn pcol)
         {
-            string sqlname;
-
-            switch (pcol.PhysicalStorageType)
+            string sqlname = (object)pcol.PhysicalStorageType switch
             {
-                case SqlDbType.Text:
-                    sqlname = $"cast([{pcol.ColumnName}] as varchar(max))";
-                    break;
-                case SqlDbType.NText:
-                    sqlname = $"cast([{pcol.ColumnName}] as nvarchar(max))";
-                    break;
-                default:
-                    sqlname = $"[{pcol.ColumnName}]";
-                    break;
-            }
-
+                SqlDbType.Text => $"cast([{pcol.ColumnName}] as varchar(max))",
+                SqlDbType.NText => $"cast([{pcol.ColumnName}] as nvarchar(max))",
+                _ => $"[{pcol.ColumnName}]",
+            };
             return sqlname;
         }
 
@@ -2452,13 +2431,13 @@ namespace DBLOG
 
             bTime = new byte[sLength];
             Array.Copy(data, iCurrentIndex, bTime, 0, sLength);
-            
+
             sTimeHex = "";
             foreach (byte b in bTime)
             {
                 sTimeHex = b.ToString("X2") + sTimeHex;
             }
-             
+
             sTimeDec = Convert.ToInt64(sTimeHex, 16).ToString();
             if (sTimeDec.Length <= sScale)
             {
@@ -2592,7 +2571,7 @@ namespace DBLOG
             else
             { // 负数
                 BigInteger bigintMoney;
-                bigintMoney = BigInteger.Parse("FFFFFFFFFFFFFFFF", System.Globalization.NumberStyles.HexNumber) 
+                bigintMoney = BigInteger.Parse("FFFFFFFFFFFFFFFF", System.Globalization.NumberStyles.HexNumber)
                               + 1
                               - BigInteger.Parse(sMoneyHex, System.Globalization.NumberStyles.HexNumber);
 
@@ -2663,7 +2642,7 @@ namespace DBLOG
             bDecimal = new byte[sLength];
             Array.Copy(data, iCurrentIndex, bDecimal, 0, sLength);
             sSignDecimal = Convert.ToInt16(bDecimal[0].ToString("X2") == "00" ? -1 : 1);
-            
+
             sDecimalHex = "";
             for (iDecimal = 1; iDecimal <= bDecimal.Length - 1; iDecimal++)
             {
@@ -2689,7 +2668,7 @@ namespace DBLOG
 
             bReal = new byte[sLenth];
             Array.Copy(data, iCurrentIndex, bReal, 0, sLenth);
-            
+
             sSignReal = Convert.ToInt16(bReal[3].ToBinaryString().Substring(0, 1) == "1" ? -1 : 1);
 
             // 指数
@@ -2875,7 +2854,7 @@ namespace DBLOG
                         i = i + 1;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     fvaluehex = "";
                 }
@@ -2940,7 +2919,7 @@ namespace DBLOG
             {
                 fvaluehex = pv.FLogContents;
             }
-            
+
             if (fvaluehex != null)
             {
                 if (isNText == false)
@@ -3030,7 +3009,7 @@ namespace DBLOG
                         i = i + 1;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     fvaluehex = "";
                 }
@@ -3207,7 +3186,7 @@ namespace DBLOG
 
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 fvalue = "";
             }
@@ -3468,7 +3447,7 @@ namespace DBLOG
                         break;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 fvaluehex = "";
             }
@@ -3512,7 +3491,7 @@ namespace DBLOG
                     i = i + 1;
                 }
             }
-            catch(Exception ex)
+            catch (Exception)
             {
                 fvaluehex = "";
             }
@@ -3536,7 +3515,7 @@ namespace DBLOG
 
     public class FPageInfo
     {
-        private string offset_str, pagenum_str, filenum_str, slotnum_str;
+        private readonly string offset_str, pagenum_str, filenum_str, slotnum_str;
 
         public FPageInfo()
         {
@@ -3574,7 +3553,7 @@ namespace DBLOG
         public string FileNumPageNum_Hex { get; set; }
         public string PageData { get; set; }
         public string PageType { get; set; }
-        
+
         public int SlotCnt { get; set; }
         public int[] SlotBeginIndex { get; set; }
     }

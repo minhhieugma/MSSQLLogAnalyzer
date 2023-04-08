@@ -1,12 +1,7 @@
-﻿using System;
-using System.Data;
-using System.Data.SqlClient;
-using System.Data.SqlTypes;
-using Microsoft.SqlServer.Server;
-using DBLOG;
-using System.Collections.Generic;
+﻿using Microsoft.SqlServer.Server;
+using System;
 using System.Collections;
-using System.Threading.Tasks;
+using System.Data.SqlTypes;
 
 public partial class UserDefinedFunctions
 {
@@ -24,16 +19,16 @@ public partial class UserDefinedFunctions
 
         if (string.IsNullOrEmpty(pbegintime))
         {
-            pbegintime = DateTime.Now.AddSeconds(-5).ToString("yyyy-MM-dd HH:mm:ss");
+            pbegintime = DateTime.Now.AddSeconds(-5);
         }
         if (string.IsNullOrEmpty(pendtime))
         {
-            pendtime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            pendtime = DateTime.Now;
         }
 
         xc = new DatabaseLogAnalyzer(pconnectionstring);
         r = xc.ReadLog(pbegintime, pendtime, pobjectname);
-        
+
         return r;
     }
 

@@ -1,18 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Timers;
-using System.Windows.Forms;
+﻿using DBLOG;
 using System.Configuration;
-using DBLOG;
+using System.Diagnostics;
+using System.Timers;
 
 namespace MSSQLLogAnalyzer
 {
@@ -34,9 +23,10 @@ namespace MSSQLLogAnalyzer
         private void Form1_Load(object sender, EventArgs e)
         {
             config = ConfigurationManager.OpenExeConfiguration(Application.ExecutablePath);
-            
+
             //Connection String: Please change below connection string for your environment.
-            txtConnectionstring.Text = config.AppSettings.Settings["DefaultConnectionString"].Value;
+            txtConnectionstring.Text = config.AppSettings.Settings["DefaultConnectionString"]?.Value
+                ?? ConfigurationManager.AppSettings["DefaultConnectionString"];
 
             //Time Range: Default to read at last 10 seconds 's logs, you can change the time range for need.
             dtStarttime.Value = Convert.ToDateTime(DateTime.Now.AddSeconds(-10).ToString("yyyy/MM/dd HH:mm:ss"));
@@ -74,7 +64,7 @@ namespace MSSQLLogAnalyzer
 
                 await Task.Run(() => Readlog());
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw new Exception(ex.Message);
             }
@@ -93,13 +83,13 @@ namespace MSSQLLogAnalyzer
 
         private void Readlog()
         {
-            string ConnectionString, StartTime, EndTime, TableName;
+            string ConnectionString, TableName;
 
             ConnectionString = txtConnectionstring.Text;
-            StartTime = dtStarttime.Value.ToString("yyyy-MM-dd HH:mm:ss");
-            EndTime = dtEndtime.Value.ToString("yyyy-MM-dd HH:mm:ss");
+            var StartTime = dtStarttime.Value;
+            var EndTime = dtEndtime.Value;
             TableName = txtTablename.Text.TrimEnd();
-            
+
             dbla = new DatabaseLogAnalyzer(ConnectionString);
             logs = dbla.ReadLog(StartTime, EndTime, TableName);
         }
@@ -131,7 +121,7 @@ namespace MSSQLLogAnalyzer
             DatabaseLog currlog;
             string tfilename;
 
-            if (e.ColumnIndex == redoSQLDataGridViewTextBoxColumn.Index 
+            if (e.ColumnIndex == redoSQLDataGridViewTextBoxColumn.Index
                 || e.ColumnIndex == undoSQLDataGridViewTextBoxColumn.Index)
             {
                 currlog = dgLogs.CurrentRow.DataBoundItem as DatabaseLog;
@@ -195,7 +185,7 @@ namespace MSSQLLogAnalyzer
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception)
             {
 
             }

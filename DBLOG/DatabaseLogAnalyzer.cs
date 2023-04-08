@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DBLOG
 {
@@ -21,7 +19,7 @@ namespace DBLOG
                        _starttime, _endtime, // 开始时间 结束时间
                        _MinLSN, // 开始LSN
                        _tsql;
-        private DatabaseOperation DB;  // 数据库操作对象
+        private readonly DatabaseOperation DB;  // 数据库操作对象
         /// <summary>
         /// Readed Percent (0-100).
         /// </summary>
@@ -58,14 +56,14 @@ namespace DBLOG
         /// <param name="pEndTime">End Time</param>
         /// <param name="pObjectName">Table Name, Blank for query all objects.</param>
         /// <returns>DatabaseLog array.</returns>
-        public DatabaseLog[] ReadLog(string pStartTime, string pEndTime, string pObjectName)
+        public DatabaseLog[] ReadLog(DateTime pStartTime, DateTime pEndTime, string pObjectName)
         {
-            List<DatabaseLog> logs, dmllog, ddllog;
+            List<DatabaseLog> logs, dmllog;
 
             _objectname = pObjectName ?? string.Empty;
             _objectname = (_objectname.Length > 0 && _objectname.Contains(".") == false ? "dbo." : "") + _objectname;
-            _starttime = pStartTime;
-            _endtime = pEndTime;
+            _starttime = pStartTime.ToString("yyyy-MM-dd HH:mm:ss");
+            _endtime = pEndTime.ToString("yyyy-MM-dd HH:mm:ss");
 
             if (File.Exists(LogFile) == true)
             {
@@ -159,7 +157,7 @@ namespace DBLOG
 
             if (_objectname.Length > 0)
             {
-                _tsql = _tsql 
+                _tsql = _tsql
                         + " and case when parsename([AllocUnitName],3) is not null then parsename([AllocUnitName],2) else parsename([AllocUnitName],1) end='" + tablename + "' "
                         + " and case when parsename([AllocUnitName],3) is not null then parsename([AllocUnitName],3) else parsename([AllocUnitName],2) end='" + schemaname + "' ";
             }
@@ -176,7 +174,7 @@ namespace DBLOG
                     + " group by case when parsename([AllocUnitName],3) is not null then parsename([AllocUnitName],2) else parsename([AllocUnitName],1) end, "
                     + "          case when parsename([AllocUnitName],3) is not null then parsename([AllocUnitName],3) else parsename([AllocUnitName],2) end "
                     + " order by max([Current LSN]) desc; ";
-            tables = DB.Query<(string tablename,string schemaname)>(_tsql, false).ToList();
+            tables = DB.Query<(string tablename, string schemaname)>(_tsql, false).ToList();
 
             ReadPercent = ReadPercent + 5;
 
@@ -212,7 +210,7 @@ namespace DBLOG
             ReadPercent = 95;
             return dmllog;
         }
-      
+
     }
 
     [Serializable]
@@ -231,8 +229,8 @@ namespace DBLOG
         public string ObjectName { get; set; }
         public string Operation { get; set; }
 
-        public string RedoSQL 
-        { 
+        public string RedoSQL
+        {
             get
             {
                 return (_redosql.Length <= 1000 ? _redosql : _redosql.Substring(0, 1000) + "...");
@@ -242,8 +240,8 @@ namespace DBLOG
                 _redosql = value;
             }
         }
-        public byte[] RedoSQLFile 
-        { 
+        public byte[] RedoSQLFile
+        {
             get
             {
                 if (_redosqlfile == null)

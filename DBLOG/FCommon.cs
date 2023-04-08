@@ -8,7 +8,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace DBLOG
 {
@@ -109,9 +108,9 @@ namespace DBLOG
             string tfilename;
             byte[] filedata;
 
-            tfilename = Guid.NewGuid().ToString().Replace("-","") + ".txt";
+            tfilename = Guid.NewGuid().ToString().Replace("-", "") + ".txt";
             fm = FileMode.Create;
-            fs = new FileStream(tfilename,fm,FileAccess.Write,FileShare.None);
+            fs = new FileStream(tfilename, fm, FileAccess.Write, FileShare.None);
             writer = new StreamWriter(fs, Encoding.Unicode);
             writer.WriteLine(ptext);
 
@@ -185,63 +184,31 @@ namespace DBLOG
                         typecode = Type.GetTypeCode(TargetType);
                     }
 
-                    switch (typecode)
+                    y = typecode switch
                     {
-                        case TypeCode.Boolean:
-                            y = Convert.ToBoolean(x);
-                            break;
-                        case TypeCode.Char:
-                            y = Convert.ToChar(x);
-                            break;
-                        case TypeCode.SByte:
-                            y = Convert.ToSByte(x);
-                            break;
-                        case TypeCode.Byte:
-                            y = Convert.ToByte(x);
-                            break;
-                        case TypeCode.Int16:
-                            y = Convert.ToInt16(x);
-                            break;
-                        case TypeCode.UInt16:
-                            y = Convert.ToUInt16(x);
-                            break;
-                        case TypeCode.Int32:
-                            y = Convert.ToInt32(x);
-                            break;
-                        case TypeCode.UInt32:
-                            y = Convert.ToUInt32(x);
-                            break;
-                        case TypeCode.Int64:
-                            y = Convert.ToInt64(x);
-                            break;
-                        case TypeCode.UInt64:
-                            y = Convert.ToUInt64(x);
-                            break;
-                        case TypeCode.Single:
-                            y = Convert.ToSingle(x);
-                            break;
-                        case TypeCode.Double:
-                            y = Convert.ToDouble(x);
-                            break;
-                        case TypeCode.Decimal:
-                            y = Convert.ToDecimal(x);
-                            break;
-                        case TypeCode.DateTime:
-                            y = Convert.ToDateTime(x);
-                            break;
-                        case TypeCode.String:
-                            y = Convert.ToString(x);
-                            break;
-                        default:
-                            y = x;
-                            break;
-                    }
+                        TypeCode.Boolean => Convert.ToBoolean(x),
+                        TypeCode.Char => Convert.ToChar(x),
+                        TypeCode.SByte => Convert.ToSByte(x),
+                        TypeCode.Byte => Convert.ToByte(x),
+                        TypeCode.Int16 => Convert.ToInt16(x),
+                        TypeCode.UInt16 => Convert.ToUInt16(x),
+                        TypeCode.Int32 => Convert.ToInt32(x),
+                        TypeCode.UInt32 => Convert.ToUInt32(x),
+                        TypeCode.Int64 => Convert.ToInt64(x),
+                        TypeCode.UInt64 => Convert.ToUInt64(x),
+                        TypeCode.Single => Convert.ToSingle(x),
+                        TypeCode.Double => Convert.ToDouble(x),
+                        TypeCode.Decimal => Convert.ToDecimal(x),
+                        TypeCode.DateTime => Convert.ToDateTime(x),
+                        TypeCode.String => Convert.ToString(x),
+                        _ => x,
+                    };
                 }
                 else
                 {
                     y = Enum.Parse(TargetType, x.ToString());
                 }
-                
+
             }
 
             return y;
@@ -386,7 +353,7 @@ namespace DBLOG
         public bool IsIdentity;
         public bool IsComputed = false;   // 是否是计算列
         public bool IsHidden;
-        
+
         public short LeafOffset;
         public short LeafNullBit;
         public int GraphType;
@@ -398,7 +365,7 @@ namespace DBLOG
 
         public TableColumn()
         {
-            
+
         }
 
         public TableColumn(short columnid = -1, bool isexists = true)
@@ -458,52 +425,52 @@ namespace DBLOG
         [StringLength(23)]
         public string Current_LSN { get; set; }
 
-        
+
         [Column(Order = 1)]
         [StringLength(31)]
         public string Operation { get; set; }
 
-        
+
         [Column(Order = 2)]
         [StringLength(31)]
         public string Context { get; set; }
 
-        
+
         [Column("Transaction ID", Order = 3)]
         [StringLength(14)]
         public string Transaction_ID { get; set; }
 
-        
+
         [Column(Order = 4)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public long LogBlockGeneration { get; set; }
 
-        
+
         [Column("Tag Bits", Order = 5)]
         [MaxLength(2)]
         public byte[] Tag_Bits { get; set; }
 
-        
+
         [Column("Log Record Fixed Length", Order = 6)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public short Log_Record_Fixed_Length { get; set; }
 
-        
+
         [Column("Log Record Length", Order = 7)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public short Log_Record_Length { get; set; }
 
-        
+
         [Column("Previous LSN", Order = 8)]
         [StringLength(23)]
         public string Previous_LSN { get; set; }
 
-        
+
         [Column("Flag Bits", Order = 9)]
         [MaxLength(2)]
         public byte[] Flag_Bits { get; set; }
 
-        
+
         [Column("Log Reserve", Order = 10)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public int Log_Reserve { get; set; }
@@ -817,7 +784,7 @@ namespace DBLOG
         [Column("New Size")]
         public long? New_Size { get; set; }
 
-        
+
         [Column(Order = 11)]
         [StringLength(256)]
         public string Description { get; set; }
@@ -910,7 +877,7 @@ namespace DBLOG
         [Column("PageFormat FormatOption")]
         public short? PageFormat_FormatOption { get; set; }
 
-        
+
         [Column("Log Record", Order = 12)]
         [MaxLength(8000)]
         public byte[] Log_Record { get; set; }
